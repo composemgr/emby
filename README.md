@@ -47,8 +47,8 @@ See `docker-compose.yaml` for complete list of configurable options.
 
 ## 📂 Volumes
 
-- `./rootfs/config/emby` - Data storage
-- `./rootfs/data/emby` - Data storage
+- `./volumes/config/emby` - Data storage
+- `./volumes/data/emby` - Data storage
 
 ## 🔍 Logging
 
