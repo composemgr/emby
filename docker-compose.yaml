@@ -21,8 +21,8 @@ services:
       PUID: ${SERVICE_USER:-1000}
       PGID: ${SERVICE_GROUP:-1000}
     volumes:
-      - ./rootfs/config/emby:/config
-      - ./rootfs/data/emby:/data
+      - ./volumes/config/emby:/config
+      - ./volumes/data/emby:/data
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8096"]
       interval: 30s
