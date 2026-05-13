@@ -16,12 +16,16 @@ services:
     logging: *default-logging
     networks:
       - emby
+      - proxy
+      - cloudflare
     ports:
       - "172.17.0.1:8096:8096"
     environment:
       TZ: ${TZ:-America/New_York}
       UID: ${SERVICE_USER:-1000}
       GID: ${SERVICE_GROUP:-1000}
+      CONTAINER_NAME: emby-app
+      HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
     volumes:
       - ./volumes/config/emby:/config
       - ./volumes/data/emby:/media
@@ -30,8 +34,28 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    labels:
+      - 'traefik.enable=true'
+      - 'cloudflare.enable=true'
+      - 'traefik.docker.network=proxy'
+      - 'cloudflare.service=http://emby-app:8096'
+      - 'cloudflare.hostname=emby.${CLOUDFLARE_ZONE_NAME:-}'
+      - 'traefik.http.routers.emby-app.entrypoints=http'
+      - 'traefik.http.routers.emby-app-secure.tls=true'
+      - 'traefik.http.routers.emby-app.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
+      - 'traefik.http.middlewares.emby-app-https-redirect.redirectscheme.scheme=https'
+      - 'traefik.http.routers.emby-app.middlewares=emby-app-https-redirect'
+      - 'traefik.http.routers.emby-app-secure.entrypoints=https'
+      - 'traefik.http.routers.emby-app-secure.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
+      - 'traefik.http.routers.emby-app-secure.tls.certresolver=cloudflare'
+      - 'traefik.http.routers.emby-app-secure.service=emby-app'
+      - 'traefik.http.services.emby-app.loadbalancer.server.port=8096'
 
 networks:
   emby:
     name: emby
     external: false
+  proxy:
+    external: true
+  cloudflare:
+    external: true
