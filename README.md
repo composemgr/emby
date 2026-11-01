@@ -21,7 +21,8 @@ curl -q -LSsf "https://raw.githubusercontent.com/composemgr/emby/main/docker-com
 ```bash
 git clone "https://github.com/composemgr/emby" ~/.local/srv/docker/emby
 cd ~/.local/srv/docker/emby
-docker compose up -d
+cp default.env .env
+docker compose --env-file .env up -d
 ```
 
 ### Option 3: Using composemgr
@@ -41,38 +42,80 @@ SERVICE_GROUP=1000
 
 See `docker-compose.yaml` for complete list of configurable options.
 
+### Environment Files
+
+`default.env.sample` holds the full set of variables and is copied to `.env`
+before starting the stack:
+
+```bash
+cp default.env .env
+docker compose --env-file .env up -d
+```
+
+`app.env.sample` holds the app-specific overrides and is copied to `app.env`:
+
+```bash
+cp app.env.sample app.env
+```
+
+`composemgr up` applies `app.env` and `default.env` automatically. Raw
+`docker compose` commands need `--env-file .env` to pick up the same values.
+
+### Reverse Proxy
+
+Three standalone compose files ship in this repo:
+
+| File | Use |
+|------|-----|
+| `docker-compose.yaml` | Default, published on `172.17.0.1:64164` |
+| `docker-compose.traefik.yaml` | Behind an existing external `traefik` network |
+| `docker-compose.tunnel.yaml` | Behind an existing external `cloudflare` tunnel network |
+
+```bash
+docker compose -f docker-compose.traefik.yaml --env-file .env up -d
+```
+
 ## 🌐 Access
 
-- **Web Interface**: http://172.17.0.1:8096
+- **Web Interface**: http://172.17.0.1:64164
 
 ## 📂 Volumes
 
-- `./volumes/config/emby` - Data storage
-- `./volumes/data/emby` - Data storage
+- `./volumes/config/emby` - Server configuration, library database and metadata
+- `./volumes/data/emby` - Media library, mounted at `/media`
+
+## 🔐 Security
+
+- Change all default passwords before deploying to production
+- Create a dedicated Emby administrator account during first-run setup
+- Configure HTTPS using a reverse proxy (nginx, traefik, caddy)
+- The `172.17.0.1` bind address limits access to the Docker host gateway only
+- Regularly update Docker images for security patches
+- Backup your data regularly
 
 ## 🔍 Logging
 
 ```shell
-docker compose logs -f emby
+docker compose --env-file .env logs -f emby
 ```
 
 ## 🛠️ Management
 
 ```bash
 # Start services
-docker compose up -d
+docker compose --env-file .env up -d
 
 # Stop services
-docker compose down
+docker compose --env-file .env down
 
 # Update to latest images
-docker compose pull && docker compose up -d
+docker compose --env-file .env pull && docker compose --env-file .env up -d
 
 # View logs
-docker compose logs -f
+docker compose --env-file .env logs -f
 
 # Restart services
-docker compose restart
+docker compose --env-file .env restart
 ```
 
 ## 📋 Requirements

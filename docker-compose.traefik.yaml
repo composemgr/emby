@@ -1,0 +1,52 @@
+name: emby
+x-logging: &default-logging
+  options:
+    max-size: '5m'
+    max-file: '1'
+  driver: json-file
+
+services:
+  emby:
+    image: emby/embyserver:latest
+    container_name: emby-app
+    domainname: ${BASE_DOMAIN_NAME:-example.com}
+    hostname: ${BASE_HOST_NAME:-$HOSTNAME}
+    restart: always
+    pull_policy: always
+    logging: *default-logging
+    environment:
+      TZ: ${TZ:-America/New_York}
+      CONTAINER_NAME: emby-app
+      HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
+      UID: ${SERVICE_USER:-1000}
+      GID: ${SERVICE_GROUP:-1000}
+    volumes:
+      - './volumes/config/emby:/config'
+      - './volumes/data/emby:/media'
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:8096/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.docker.network=traefik'
+      - 'traefik.http.routers.emby-app.entrypoints=http'
+      - 'traefik.http.routers.emby-app.rule=Host(`${BASE_HOST_NAME:-$HOSTNAME}`)'
+      - 'traefik.http.routers.emby-app.middlewares=emby-app-https-redirect'
+      - 'traefik.http.middlewares.emby-app-https-redirect.redirectscheme.scheme=https'
+      - 'traefik.http.routers.emby-app-secure.entrypoints=https'
+      - 'traefik.http.routers.emby-app-secure.rule=Host(`${BASE_HOST_NAME:-$HOSTNAME}`)'
+      - 'traefik.http.routers.emby-app-secure.tls.certresolver=cloudflare'
+      - 'traefik.http.routers.emby-app-secure.service=emby-app'
+      - 'traefik.http.services.emby-app.loadbalancer.server.port=8096'
+    networks:
+      - emby
+      - traefik
+
+networks:
+  emby:
+    name: emby
+    external: false
+  traefik:
+    external: true

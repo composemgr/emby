@@ -1,0 +1,44 @@
+name: emby
+x-logging: &default-logging
+  options:
+    max-size: '5m'
+    max-file: '1'
+  driver: json-file
+
+services:
+  emby:
+    image: emby/embyserver:latest
+    container_name: emby-app
+    domainname: ${BASE_DOMAIN_NAME:-example.com}
+    hostname: ${BASE_HOST_NAME:-$HOSTNAME}
+    restart: always
+    pull_policy: always
+    logging: *default-logging
+    environment:
+      TZ: ${TZ:-America/New_York}
+      CONTAINER_NAME: emby-app
+      HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
+      UID: ${SERVICE_USER:-1000}
+      GID: ${SERVICE_GROUP:-1000}
+    volumes:
+      - './volumes/config/emby:/config'
+      - './volumes/data/emby:/media'
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:8096/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    labels:
+      - 'cloudflare.enable=true'
+      - 'cloudflare.service=http://emby-app:8096'
+      - 'cloudflare.hostname=${BASE_HOST_NAME:-$HOSTNAME}'
+    networks:
+      - emby
+      - cloudflare
+
+networks:
+  emby:
+    name: emby
+    external: false
+  cloudflare:
+    external: true
